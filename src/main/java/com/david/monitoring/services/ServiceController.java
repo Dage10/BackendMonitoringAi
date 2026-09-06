@@ -45,4 +45,10 @@ public class ServiceController {
         return ResponseEntity.noContent().build();
     }
 
+    @PutMapping("/{id}")
+    public ResponseEntity<ServiceResponse> update(Authentication auth,
+            @PathVariable Long id,
+            @Valid @RequestBody CreateServiceRequest request) {
+        return ResponseEntity.ok(serviceService.update(userId(auth), id, request));
+    }
 }

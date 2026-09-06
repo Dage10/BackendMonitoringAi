@@ -1,6 +1,6 @@
 package com.david.monitoring.entities;
 
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.time.Instant;
@@ -9,8 +9,7 @@ import java.time.Instant;
 @Table(
         name = "metrics",
         indexes = {
-                @Index(name = "idx_metrics_service_id", columnList = "service_id"),
-                @Index(name = "idx_metrics_created_at", columnList = "created_at")
+                @Index(name = "idx_metrics_service_created_at", columnList = "service_id, created_at")
         }
 )
 public class Metric {
@@ -48,6 +47,7 @@ public class Metric {
         return id;
     }
 
+    @JsonIgnore
     public ServiceEntity getService() {
         return service;
     }

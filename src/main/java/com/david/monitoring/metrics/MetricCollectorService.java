@@ -2,6 +2,7 @@ package com.david.monitoring.metrics;
 
 import com.david.monitoring.entities.Metric;
 import com.david.monitoring.entities.ServiceEntity;
+import com.david.monitoring.services.ServiceUrlValidator;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
@@ -10,10 +11,12 @@ public class MetricCollectorService {
 
     private final RestClient restClient;
     private final MetricService metricService;
+    private final ServiceUrlValidator serviceUrlValidator;
 
-    public MetricCollectorService(RestClient restClient, MetricService metricService) {
+    public MetricCollectorService(RestClient restClient, MetricService metricService, ServiceUrlValidator serviceUrlValidator) {
         this.restClient = restClient;
         this.metricService = metricService;
+        this.serviceUrlValidator = serviceUrlValidator;
     }
 
     public Metric collect(ServiceEntity service) {
@@ -22,6 +25,7 @@ public class MetricCollectorService {
         double availability;
 
         try{
+            serviceUrlValidator.validate(service.getUrl());
 
             var response = restClient.get()
                     .uri(service.getUrl())

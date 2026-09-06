@@ -6,5 +6,8 @@ public record ServiceResponse(
         Long id,
         String name,
         String url,
-        Instant createdAt
+        Instant createdAt,
+        Long lastLatencyMs,
+        Integer lastStatusCode,
+        Double lastAvailability
 ) {}
