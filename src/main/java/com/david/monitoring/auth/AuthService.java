@@ -6,6 +6,8 @@ import com.david.monitoring.entities.User;
 import com.david.monitoring.users.UserRepository;
 import com.david.monitoring.users.UserService;
 import com.david.monitoring.users.dto.CreateUserRequest;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -15,6 +17,8 @@ import java.util.Optional;
 
 @Service
 public class AuthService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthService.class);
 
     private final UserRepository userRepository;
     private final UserService userService;
@@ -43,14 +47,17 @@ public class AuthService {
     public User login(LoginRequest request) {
         Optional<User> userOpt = userRepository.findByUsername(request.username());
         if (userOpt.isEmpty()) {
+            log.warn("Failed login attempt for username: {}", request.username());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
         User user = userOpt.get();
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            log.warn("Failed login attempt for username: {} (wrong password)", request.username());
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials");
         }
 
+        log.info("Successful login for username: {}", request.username());
         return user;
     }
 

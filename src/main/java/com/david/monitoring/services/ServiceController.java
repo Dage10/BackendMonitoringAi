@@ -1,5 +1,6 @@
 package com.david.monitoring.services;
 
+import com.david.monitoring.config.AuditLogger;
 import com.david.monitoring.services.dto.CreateServiceRequest;
 import com.david.monitoring.services.dto.ServiceResponse;
 import jakarta.validation.Valid;
@@ -14,9 +15,11 @@ import java.util.List;
 public class ServiceController {
 
     private final ServiceService serviceService;
+    private final AuditLogger auditLogger;
 
-    public ServiceController(ServiceService serviceService){
+    public ServiceController(ServiceService serviceService, AuditLogger auditLogger){
         this.serviceService = serviceService;
+        this.auditLogger = auditLogger;
     }
 
     private Long userId(Authentication auth) {
@@ -26,7 +29,9 @@ public class ServiceController {
     @PostMapping
     public ResponseEntity<ServiceResponse> create(Authentication auth,
             @Valid @RequestBody CreateServiceRequest request) {
-        return ResponseEntity.ok(serviceService.create(userId(auth), request));
+        ServiceResponse created = serviceService.create(userId(auth), request);
+        auditLogger.serviceCreated(userId(auth), created.id(), created.url());
+        return ResponseEntity.ok(created);
     }
 
     @GetMapping
@@ -42,6 +47,7 @@ public class ServiceController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(Authentication auth, @PathVariable Long id) {
         serviceService.delete(userId(auth), id);
+        auditLogger.serviceDeleted(userId(auth), id);
         return ResponseEntity.noContent().build();
     }
 
@@ -49,6 +55,8 @@ public class ServiceController {
     public ResponseEntity<ServiceResponse> update(Authentication auth,
             @PathVariable Long id,
             @Valid @RequestBody CreateServiceRequest request) {
-        return ResponseEntity.ok(serviceService.update(userId(auth), id, request));
+        ServiceResponse updated = serviceService.update(userId(auth), id, request);
+        auditLogger.serviceUpdated(userId(auth), id);
+        return ResponseEntity.ok(updated);
     }
 }

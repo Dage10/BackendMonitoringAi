@@ -36,6 +36,24 @@ public class ServiceUrlValidator {
         }
 
         byte[] bytes = address.getAddress();
+
+        // Handle IPv4-mapped IPv6 (::ffff:x.x.x.x)
+        if (address instanceof Inet6Address && bytes.length == 16) {
+            boolean isV4Mapped = (bytes[0] == 0 && bytes[1] == 0 && bytes[2] == 0 && bytes[3] == 0
+                    && bytes[4] == 0 && bytes[5] == 0 && bytes[6] == 0 && bytes[7] == 0
+                    && bytes[8] == 0 && bytes[9] == 0 && bytes[10] == (byte) 0xFF && bytes[11] == (byte) 0xFF);
+            if (isV4Mapped) {
+                int first = Byte.toUnsignedInt(bytes[12]);
+                int second = Byte.toUnsignedInt(bytes[13]);
+                return !(first == 0 || first == 10 || first == 127
+                        || first == 100 && second >= 64 && second <= 127
+                        || first == 169 && second == 254
+                        || first == 172 && second >= 16 && second <= 31
+                        || first == 192 && second == 168);
+            }
+            return !(address instanceof Inet6Address && (bytes[0] & 0xFE) == 0xFC);
+        }
+
         if (address instanceof Inet4Address) {
             int first = Byte.toUnsignedInt(bytes[0]);
             int second = Byte.toUnsignedInt(bytes[1]);

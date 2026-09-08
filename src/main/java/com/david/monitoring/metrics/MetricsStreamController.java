@@ -22,7 +22,7 @@ public class MetricsStreamController {
     public SseEmitter stream(Authentication auth) {
         Long userId = userId(auth);
 
-        SseEmitter emitter = new SseEmitter(0L);
+        SseEmitter emitter = new SseEmitter(300_000L); // 5 minutes
         metricsStreamService.addEmitter(userId, emitter);
 
         emitter.onCompletion(() -> metricsStreamService.removeEmitter(userId, emitter));
