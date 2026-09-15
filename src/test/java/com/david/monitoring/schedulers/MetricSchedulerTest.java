@@ -1,5 +1,6 @@
 package com.david.monitoring.schedulers;
 
+import com.david.monitoring.config.AuditLogger;
 import com.david.monitoring.entities.Metric;
 import com.david.monitoring.entities.ServiceEntity;
 import com.david.monitoring.metrics.AnomalyService;
@@ -8,12 +9,14 @@ import com.david.monitoring.metrics.MetricsStreamService;
 import com.david.monitoring.services.ServiceService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.lang.reflect.Field;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -33,8 +36,24 @@ class MetricSchedulerTest {
     @Mock
     private AnomalyService anomalyService;
 
-    @InjectMocks
-    private MetricScheduler metricScheduler;
+    @Mock
+    private AuditLogger auditLogger;
+
+    private MetricScheduler createScheduler() throws Exception {
+        ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
+        MetricScheduler scheduler = new MetricScheduler(serviceService, metricCollectorService,
+                metricsStreamService, anomalyService, auditLogger);
+        Field executorField = MetricScheduler.class.getDeclaredField("executor");
+        executorField.setAccessible(true);
+        executorField.set(scheduler, syncExecutor);
+        return scheduler;
+    }
+
+    private ExecutorService getExecutor(MetricScheduler scheduler) throws Exception {
+        Field executorField = MetricScheduler.class.getDeclaredField("executor");
+        executorField.setAccessible(true);
+        return (ExecutorService) executorField.get(scheduler);
+    }
 
     private ServiceEntity createService(Long id, Long userId, String name) throws Exception {
         ServiceEntity service = new ServiceEntity(userId, name, "https://" + name.toLowerCase() + ".com");
@@ -46,6 +65,8 @@ class MetricSchedulerTest {
 
     @Test
     void collectMetricsFromAllServices() throws Exception {
+        MetricScheduler scheduler = createScheduler();
+
         ServiceEntity service1 = createService(1L, 1L, "API 1");
         ServiceEntity service2 = createService(2L, 2L, "API 2");
 
@@ -57,7 +78,10 @@ class MetricSchedulerTest {
         when(metricCollectorService.collect(service2)).thenReturn(metric2);
         when(anomalyService.isAnomalous(any())).thenReturn(false);
 
-        metricScheduler.collectMetrics();
+        scheduler.collectMetrics();
+        ExecutorService executor = getExecutor(scheduler);
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
 
         verify(metricCollectorService).collect(service1);
         verify(metricCollectorService).collect(service2);
@@ -67,6 +91,8 @@ class MetricSchedulerTest {
 
     @Test
     void sendsAlertOnAnomaly() throws Exception {
+        MetricScheduler scheduler = createScheduler();
+
         ServiceEntity service = createService(1L, 1L, "API");
 
         when(serviceService.findAllServices()).thenReturn(List.of(service));
@@ -75,19 +101,27 @@ class MetricSchedulerTest {
         when(metricCollectorService.collect(service)).thenReturn(metric);
         when(anomalyService.isAnomalous(service)).thenReturn(true);
 
-        metricScheduler.collectMetrics();
+        scheduler.collectMetrics();
+        ExecutorService executor = getExecutor(scheduler);
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
 
         verify(metricsStreamService).sendAlert(1L, "API");
     }
 
     @Test
     void handlesExceptionDuringCollection() throws Exception {
+        MetricScheduler scheduler = createScheduler();
+
         ServiceEntity service = createService(1L, 1L, "API");
 
         when(serviceService.findAllServices()).thenReturn(List.of(service));
         when(metricCollectorService.collect(service)).thenThrow(new RuntimeException("Connection failed"));
 
-        metricScheduler.collectMetrics();
+        scheduler.collectMetrics();
+        ExecutorService executor = getExecutor(scheduler);
+        executor.shutdown();
+        executor.awaitTermination(5, TimeUnit.SECONDS);
 
         verify(metricsStreamService, never()).sendMetric(anyLong(), any());
     }

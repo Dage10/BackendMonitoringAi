@@ -3,11 +3,15 @@ package com.david.monitoring.metrics;
 import com.david.monitoring.entities.Metric;
 import com.david.monitoring.entities.ServiceEntity;
 import com.david.monitoring.services.ServiceUrlValidator;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 
 @Service
 public class MetricCollectorService {
+
+    private static final Logger log = LoggerFactory.getLogger(MetricCollectorService.class);
 
     private final RestClient restClient;
     private final MetricService metricService;
@@ -24,7 +28,7 @@ public class MetricCollectorService {
         int statusCode;
         double availability;
 
-        try{
+        try {
             serviceUrlValidator.validate(service.getUrl());
 
             var response = restClient.get()
@@ -35,7 +39,8 @@ public class MetricCollectorService {
             statusCode = response.getStatusCode().value();
             availability = (statusCode >= 200 && statusCode < 300) ? 1.0 : 0.0;
 
-        } catch (Exception ignored) {
+        } catch (Exception e) {
+            log.debug("Failed to collect metrics for service '{}': {}", service.getName(), e.getMessage());
             statusCode = 0;
             availability = 0.0;
         }
@@ -43,7 +48,5 @@ public class MetricCollectorService {
         long latencyMs = (System.nanoTime() - start) / 1_000_000;
 
         return metricService.saveMetric(service, latencyMs, statusCode, availability);
-
     }
-
 }

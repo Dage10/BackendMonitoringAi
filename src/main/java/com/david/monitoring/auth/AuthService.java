@@ -5,7 +5,6 @@ import com.david.monitoring.auth.dto.RegisterRequest;
 import com.david.monitoring.entities.User;
 import com.david.monitoring.users.UserRepository;
 import com.david.monitoring.users.UserService;
-import com.david.monitoring.users.dto.CreateUserRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -34,14 +33,7 @@ public class AuthService {
 
     public User register(RegisterRequest request) {
         String passwordHash = passwordEncoder.encode(request.password());
-
-        CreateUserRequest createUserRequest = new CreateUserRequest(
-                request.username(),
-                request.email(),
-                request.password()
-        );
-
-        return userService.createUser(createUserRequest, passwordHash);
+        return userService.createUser(request.username(), request.email(), passwordHash);
     }
 
     public User login(LoginRequest request) {

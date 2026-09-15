@@ -16,7 +16,7 @@ public class ServiceUrlValidator {
     public void validate(String value) {
         try {
             URI uri = URI.create(value);
-            if (!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme())
+            if ((!"http".equalsIgnoreCase(uri.getScheme()) && !"https".equalsIgnoreCase(uri.getScheme()))
                     || uri.getHost() == null || uri.getUserInfo() != null || uri.getFragment() != null) {
                 throw invalidUrl();
             }

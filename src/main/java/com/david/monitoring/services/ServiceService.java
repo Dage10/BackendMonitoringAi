@@ -25,6 +25,7 @@ public class ServiceService {
         this.serviceUrlValidator = serviceUrlValidator;
     }
 
+    @Transactional
     public ServiceResponse create(Long userId, CreateServiceRequest request) {
         serviceUrlValidator.validate(request.url());
         ServiceEntity entity = new ServiceEntity(userId, request.name(), request.url());
@@ -46,6 +47,7 @@ public class ServiceService {
         repository.delete(entity);
     }
 
+    @Transactional
     public ServiceResponse update(Long userId, Long id, CreateServiceRequest request) {
         serviceUrlValidator.validate(request.url());
         ServiceEntity entity = findByIdOrForbidden(userId, id);
@@ -56,6 +58,10 @@ public class ServiceService {
 
     public List<ServiceEntity> findAllServices() {
         return repository.findAll();
+    }
+
+    public ServiceEntity getEntityOrForbidden(Long userId, Long id) {
+        return findByIdOrForbidden(userId, id);
     }
 
     private ServiceEntity findByIdOrForbidden(Long userId, Long id) {

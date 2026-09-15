@@ -93,7 +93,7 @@ public class AuthController {
     }
 
     private void setCookie(HttpServletResponse response, String token) {
-        CookieUtils.setTokenCookie(response, token, Math.toIntExact(jwtExpirationMillis / 1000), environment);
+        CookieUtils.setTokenCookie(response, token, Math.min((int)(jwtExpirationMillis / 1000), Integer.MAX_VALUE), environment);
     }
 
     private AuthResponse toAuthResponse(User user) {
