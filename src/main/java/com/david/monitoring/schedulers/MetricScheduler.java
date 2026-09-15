@@ -1,5 +1,6 @@
 package com.david.monitoring.schedulers;
 
+import com.david.monitoring.config.AuditLogger;
 import com.david.monitoring.entities.Metric;
 import com.david.monitoring.entities.ServiceEntity;
 import com.david.monitoring.metrics.AnomalyService;
@@ -22,15 +23,18 @@ public class MetricScheduler {
     private final MetricCollectorService metricCollectorService;
     private final MetricsStreamService metricsStreamService;
     private final AnomalyService anomalyService;
+    private final AuditLogger auditLogger;
 
     public MetricScheduler(ServiceService serviceService,
                            MetricCollectorService metricCollectorService,
                            MetricsStreamService metricsStreamService,
-                           AnomalyService anomalyService) {
+                           AnomalyService anomalyService,
+                           AuditLogger auditLogger) {
         this.serviceService = serviceService;
         this.metricCollectorService = metricCollectorService;
         this.metricsStreamService = metricsStreamService;
         this.anomalyService = anomalyService;
+        this.auditLogger = auditLogger;
     }
 
     @Scheduled(fixedRate = 30_000)
@@ -46,6 +50,7 @@ public class MetricScheduler {
                 boolean anomaly = anomalyService.isAnomalous(service);
                 if (anomaly) {
                     metricsStreamService.sendAlert(service.getUserId(), service.getName());
+                    auditLogger.anomalyDetected(service.getUserId(), service.getId(), "Latency spike on " + service.getName());
                 }
             } catch (Exception e) {
                 log.error("Failed to collect metrics for service: {}", service.getName(), e);
